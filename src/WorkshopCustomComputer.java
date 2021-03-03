@@ -1,10 +1,18 @@
 
+import javafx.stage.FileChooser;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.plaf.FontUIResource;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.stream.Collectors;
+import java.util.Vector;
 
 class ItemEntry {
     String type;
@@ -16,9 +24,16 @@ class ItemEntry {
         this.name = name;
         this.price = price;
     }
+
+    @Override
+    public String toString() {
+        return name+" , ราคา "+price +" บาท";
+    }
 }
 public class WorkshopCustomComputer extends JFrame {
     int posY = 70;
+    //ตัวแปรเก็บข้อมูลสินค้า
+    ArrayList<ItemEntry> stocks = new ArrayList<ItemEntry>();
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -44,14 +59,146 @@ public class WorkshopCustomComputer extends JFrame {
 
         getContentPane().setLayout(null);
 
-        //ตัวแปรเก็บข้อมูลสินค้า
-        ArrayList<ItemEntry> stocks = new ArrayList<ItemEntry>();
+        //โหลดสินค้า
+        loadStock();
 
+        //เพิ่มชื่อโปรแกรม
+
+        JLabel titleLabel = new JLabel("Workshop : โปรแกรมจัดสเปคคอมพิวเตอร์ | Custom Computer");
+        titleLabel.setBounds(40, 20, 500, 60);
+        add(titleLabel);
+
+        //สร้างตัวแปรเช็ค ชิ้นส่วนที่เพิ่มเข้าไปแล้ว
+        ArrayList<String> checkAdded = new ArrayList<String>();
+        //สร้างตัวแปรเก็บ comboBox ที่สรา้งไว้
+        ArrayList<JComboBox> ListComboBox = new ArrayList<>();
+        for (int i = 0; i < stocks.size(); i++) {
+            if (checkAdded.contains(stocks.get(i).type)) continue;
+            checkAdded.add(stocks.get(i).type);
+
+            posY += 50;
+
+            JLabel lbResult = new JLabel(stocks.get(i).type);
+            lbResult.setBounds(50, posY, 300, 20);
+            add(lbResult);
+
+
+            int finalI = i;
+            Vector model = new Vector();
+            stocks.forEach((v) -> {
+                if (v.type == stocks.get(finalI).type){
+                    model.addElement(v);
+                }
+
+            });
+            JComboBox cb = new JComboBox(model);
+            cb.setSelectedItem(null);
+            cb.setBounds(150, posY, 300, 30);
+            add(cb);
+            ListComboBox.add(cb);
+
+        }
+
+
+
+
+
+        JLabel bill = new JLabel();
+        bill.setBounds(500,70,700,500);
+        add(bill);
+
+
+        JButton submit = new JButton("คำนวนราคา");
+        submit.setBounds(200,680,120,40);
+        submit.addActionListener(new ActionListener() {
+            double total = 0.0d;
+            boolean isShow = false;
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                total = 0;
+                isShow = false;
+                ArrayList<ItemEntry> itemBill = new ArrayList<ItemEntry>();
+                ListComboBox.forEach((v) ->{
+
+                    ItemEntry item = (ItemEntry)v.getModel().getSelectedItem();
+
+                    if (isShow) return;
+                    if (item == null){
+                        ItemEntry iT = (ItemEntry) v.getModel().getElementAt(0);
+                        JOptionPane.showMessageDialog(null, "โปรดเลือก "+iT.type);
+                        isShow=true;
+                        return;
+
+                    }
+                    System.out.println(item.type+" "+item.name);
+                    total += item.price;
+                    itemBill.add(item);
+                });
+                if (!isShow){
+                    String sb = billHTML(itemBill);
+
+                    System.out.println("ราคารวม "+total+" บาท");
+                    bill.setText(sb);
+                    setSize(1200,800);
+                    titleLabel.setBounds(400, 20, 500, 60);
+                }
+            }
+        });
+        add(submit);
+
+        JButton save = new JButton("บันทึกใบเสร็จรับเงิน");
+        save.setBounds(750,680,150,40);
+        save.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFrame parentFrame = new JFrame();
+
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("เลือก ที่อยู่บันทึกไฟล์");
+
+                fileChooser.setSelectedFile(new File("bill.png"));
+                int userSelection = fileChooser.showSaveDialog(parentFrame);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    File fileToSave = fileChooser.getSelectedFile();
+                    System.out.println("Save as file: " + fileToSave.getAbsolutePath());
+                    BufferedImage img = new BufferedImage(bill.getWidth(), bill.getHeight(), BufferedImage.TYPE_INT_ARGB);
+                    Graphics2D g2d = img.createGraphics();
+                    bill.printAll(g2d);
+                    g2d.dispose();
+
+                    File outputfile = new File(fileToSave.getAbsolutePath());
+                    try {
+                        ImageIO.write(img, "png", outputfile);
+                    } catch (IOException ioException) {
+                        ioException.printStackTrace();
+                    }
+
+                }
+
+
+
+            }
+        });
+        add(save);
+    }
+    public static void setUIFont(javax.swing.plaf.FontUIResource f) {
+        java.util.Enumeration keys = UIManager.getDefaults().keys();
+        while (keys.hasMoreElements()) {
+            Object key = keys.nextElement();
+            Object value = UIManager.get(key);
+            if (value instanceof javax.swing.plaf.FontUIResource) {
+                UIManager.put(key, f);
+            }
+        }
+    }
+    public void loadStock(){
         //เพิ่มราคา CPU เข้าคลังสินค้า
-        stocks.add(new ItemEntry("CPU","i3",2350));
-        stocks.add(new ItemEntry("CPU","i5",4450));
-        stocks.add(new ItemEntry("CPU","i7",10900));
-        stocks.add(new ItemEntry("CPU","i9",2350));
+        stocks.add(new ItemEntry("CPU","Intel i3",2350));
+        stocks.add(new ItemEntry("CPU","Intel i5",4450));
+        stocks.add(new ItemEntry("CPU","Intel i7",10900));
+        stocks.add(new ItemEntry("CPU","Intel i9",23500));
 
         //เพิ่มราคา Mainboard เข้าคลังสินค้า
         stocks.add(new ItemEntry("Mainboard","B460",4490));
@@ -106,48 +253,73 @@ public class WorkshopCustomComputer extends JFrame {
         stocks.add(new ItemEntry("Mouse","Acer",790));
         stocks.add(new ItemEntry("Mouse","Razer",1390));
         stocks.add(new ItemEntry("Mouse","Logitch",850));
-
-        JLabel titleLabel = new JLabel("Workshop : โปรแกรมจัดสเปคคอมพิวเตอร์ | Custom Computer");
-        titleLabel.setBounds(40, 20, 500, 60);
-        add(titleLabel);
-
-        ArrayList<String> checkAdded = new ArrayList<String>();
-        for (int i = 0; i < stocks.size(); i++) {
-            if (checkAdded.contains(stocks.get(i).type)) continue;
-            checkAdded.add(stocks.get(i).type);
-
-            posY += 50;
-
-            JLabel lbResult = new JLabel(stocks.get(i).type);
-            lbResult.setBounds(50, posY, 300, 20);
-            add(lbResult);
-
-            final ArrayList<String> combo = new ArrayList<String>();
-
-            int finalI = i;
-            stocks.forEach((v) -> {
-                if (v.type == stocks.get(finalI).type){
-                    combo.add(v.name+" , ราคา "+v.price +" บาท");
-                }
-            });
-
-            JComboBox cb = new JComboBox(combo.toArray());
-            cb.setBounds(150, posY, 260, 30);
-            add(cb);
-        }
-
-        JButton submit = new JButton("คำนวนราคา");
-        submit.setBounds(200,680,120,40);
-        add(submit);
     }
-    public static void setUIFont(javax.swing.plaf.FontUIResource f) {
-        java.util.Enumeration keys = UIManager.getDefaults().keys();
-        while (keys.hasMoreElements()) {
-            Object key = keys.nextElement();
-            Object value = UIManager.get(key);
-            if (value instanceof javax.swing.plaf.FontUIResource) {
-                UIManager.put(key, f);
-            }
+    public static String billHTML(ArrayList<ItemEntry> item) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<html>"
+                + "<style type='text/css'>"
+                + "body, h1, th, td {"
+                + "  font-family: Serif;"
+                + "  font-size: 16pt;"
+                + "background: #F3F3F4;"
+                + "color: #1E1E1F;"
+                + "}"
+                + "h1 {"
+                + "  font-size: 20pt;"
+                + "}"
+                + "table {"
+                + "}"
+                + "td, th {"
+                + "}"
+                + "th {"
+                + "  border-bottom: thin solid gray;"
+                + "}"
+                + ".overline td {"
+                + "  border-top: thin solid gray;"
+                + "}"
+                + "</style>"
+                + "<body>");
+        sb.append("<h1>- ใบเสร็จรับเงิน -</h1>");
+        sb.append("<table width='650' cellspacing='0'>"
+                + "<tr>"
+                + "<th width='50%' align='left'>ชิ้นส่วน</th>"
+                + "<th width='20%' align='right'>สินค้า</th>"
+                + "<th width='30%' align='right'>ราคา</th>"
+                + "</tr>");
+        int total = 0;
+        for (ItemEntry v : item
+             ) {
+            sb.append("<tr>"
+                    + "<td>")
+                    .append(v.type)
+                    .append("</td>"
+                            + "<td align='right'>")
+                    .append(v.name)
+                    .append("</td>"
+                            + "<td align='right'>")
+                    .append(formatAmount((int) v.price))
+                    .append("</td>"
+                            + "</tr>");
+            total +=  v.price;
         }
+
+        sb.append("<tr class='overline'>"
+                + "<td>&nbsp;")
+                .append("</td>"
+                        + "<td align='right'>")
+                .append("รวม")
+                .append("</td>"
+                        + "<td align='right'>")
+                .append(formatAmount(total))
+                .append("</td>"
+                        + "</tr>"
+                        + "</table>");
+
+        return sb.toString();
+    }
+
+    private static String formatAmount(int amount) {
+        return new MessageFormat("{0,number,currency}").format(new Object[]{amount})
+                .replace(' ', '\u00a0');
     }
 }

@@ -1,9 +1,8 @@
 
-import javafx.stage.FileChooser;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.plaf.FontUIResource;
+import javax.swing.text.DefaultCaret;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -53,7 +52,7 @@ public class WorkshopCustomComputer extends JFrame {
         //กำหนดขนาดโปรแกรม
         setSize(500, 800);
         //กำหนดตำแหน่งขอหน้าต่าง
-        setLocation(0, 0);
+        setLocationByPlatform(true);
         //กำหนดให้กดปิดแล้วออกจากโปรแกรม
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -63,7 +62,6 @@ public class WorkshopCustomComputer extends JFrame {
         loadStock();
 
         //เพิ่มชื่อโปรแกรม
-
         JLabel titleLabel = new JLabel("Workshop : โปรแกรมจัดสเปคคอมพิวเตอร์ | Custom Computer");
         titleLabel.setBounds(40, 20, 500, 60);
         add(titleLabel);
@@ -73,23 +71,25 @@ public class WorkshopCustomComputer extends JFrame {
         //สร้างตัวแปรเก็บ comboBox ที่สรา้งไว้
         ArrayList<JComboBox> ListComboBox = new ArrayList<>();
         for (int i = 0; i < stocks.size(); i++) {
+
             if (checkAdded.contains(stocks.get(i).type)) continue;
             checkAdded.add(stocks.get(i).type);
 
             posY += 50;
 
+            //สร้าง jlabel ของชิ้นส่วนต่างๆ
             JLabel lbResult = new JLabel(stocks.get(i).type);
             lbResult.setBounds(50, posY, 300, 20);
             add(lbResult);
 
 
+            //สร้าง JComboBox ของชิ้นส่วนต่างๆ
             int finalI = i;
             Vector model = new Vector();
             stocks.forEach((v) -> {
                 if (v.type == stocks.get(finalI).type){
                     model.addElement(v);
                 }
-
             });
             JComboBox cb = new JComboBox(model);
             cb.setSelectedItem(null);
@@ -98,14 +98,6 @@ public class WorkshopCustomComputer extends JFrame {
             ListComboBox.add(cb);
 
         }
-
-
-
-
-
-        JLabel bill = new JLabel();
-        bill.setBounds(500,70,700,500);
-        add(bill);
 
 
         JButton submit = new JButton("คำนวนราคา");
@@ -124,6 +116,7 @@ public class WorkshopCustomComputer extends JFrame {
                     ItemEntry item = (ItemEntry)v.getModel().getSelectedItem();
 
                     if (isShow) return;
+
                     if (item == null){
                         ItemEntry iT = (ItemEntry) v.getModel().getElementAt(0);
                         JOptionPane.showMessageDialog(null, "โปรดเลือก "+iT.type);
@@ -131,57 +124,17 @@ public class WorkshopCustomComputer extends JFrame {
                         return;
 
                     }
-                    System.out.println(item.type+" "+item.name);
                     total += item.price;
                     itemBill.add(item);
                 });
                 if (!isShow){
-                    String sb = billHTML(itemBill);
-
-                    System.out.println("ราคารวม "+total+" บาท");
-                    bill.setText(sb);
-                    setSize(1200,800);
-                    titleLabel.setBounds(400, 20, 500, 60);
+                    createFrameBill(itemBill);
                 }
             }
         });
         add(submit);
 
-        JButton save = new JButton("บันทึกใบเสร็จรับเงิน");
-        save.setBounds(750,680,150,40);
-        save.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFrame parentFrame = new JFrame();
 
-                JFileChooser fileChooser = new JFileChooser();
-                fileChooser.setDialogTitle("เลือก ที่อยู่บันทึกไฟล์");
-
-                fileChooser.setSelectedFile(new File("bill.png"));
-                int userSelection = fileChooser.showSaveDialog(parentFrame);
-
-                if (userSelection == JFileChooser.APPROVE_OPTION) {
-                    File fileToSave = fileChooser.getSelectedFile();
-                    System.out.println("Save as file: " + fileToSave.getAbsolutePath());
-                    BufferedImage img = new BufferedImage(bill.getWidth(), bill.getHeight(), BufferedImage.TYPE_INT_ARGB);
-                    Graphics2D g2d = img.createGraphics();
-                    bill.printAll(g2d);
-                    g2d.dispose();
-
-                    File outputfile = new File(fileToSave.getAbsolutePath());
-                    try {
-                        ImageIO.write(img, "png", outputfile);
-                    } catch (IOException ioException) {
-                        ioException.printStackTrace();
-                    }
-
-                }
-
-
-
-            }
-        });
-        add(save);
     }
     public static void setUIFont(javax.swing.plaf.FontUIResource f) {
         java.util.Enumeration keys = UIManager.getDefaults().keys();
@@ -259,7 +212,6 @@ public class WorkshopCustomComputer extends JFrame {
         sb.append("<html>"
                 + "<style type='text/css'>"
                 + "body, h1, th, td {"
-                + "  font-family: Serif;"
                 + "  font-size: 16pt;"
                 + "background: #F3F3F4;"
                 + "color: #1E1E1F;"
@@ -280,7 +232,7 @@ public class WorkshopCustomComputer extends JFrame {
                 + "</style>"
                 + "<body>");
         sb.append("<h1>- ใบเสร็จรับเงิน -</h1>");
-        sb.append("<table width='650' cellspacing='0'>"
+        sb.append("<table width='400' cellspacing='0'>"
                 + "<tr>"
                 + "<th width='50%' align='left'>ชิ้นส่วน</th>"
                 + "<th width='20%' align='right'>สินค้า</th>"
@@ -306,10 +258,10 @@ public class WorkshopCustomComputer extends JFrame {
         sb.append("<tr class='overline'>"
                 + "<td>&nbsp;")
                 .append("</td>"
-                        + "<td align='right'>")
+                        + "<td align='right' style='color:red;font-size: 18 px;'>")
                 .append("รวม")
                 .append("</td>"
-                        + "<td align='right'>")
+                        + "<td align='right' style='color:red;font-size: 18 px;'>")
                 .append(formatAmount(total))
                 .append("</td>"
                         + "</tr>"
@@ -321,5 +273,35 @@ public class WorkshopCustomComputer extends JFrame {
     private static String formatAmount(int amount) {
         return new MessageFormat("{0,number,currency}").format(new Object[]{amount})
                 .replace(' ', '\u00a0');
+    }
+
+    public static void createFrameBill(ArrayList<ItemEntry> item)
+    {
+        EventQueue.invokeLater(() -> {
+            JFrame frame = new JFrame("ใบเสร็จรับเงิน");
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+
+
+            JPanel panel = new JPanel();
+            panel.setPreferredSize (new Dimension (450, 400));
+
+
+            String sb = billHTML(item);
+            JLabel bill = new JLabel();
+            bill.setBounds(0,0,450,400);
+            bill.setText(sb);
+            panel.add(bill);
+
+
+            frame.getContentPane().add( panel);
+            frame.pack();
+            frame.setLocationByPlatform(true);
+            frame.setResizable(false);
+            frame.setLayout(null);
+            frame.setVisible(true);
+
+
+        });
     }
 }
